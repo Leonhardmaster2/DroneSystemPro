@@ -1,0 +1,99 @@
+
+
+PROMPT — Generiere ein vollständiges Unreal C++ Plugin „DroneSystemPro“ (UE5.6, kompilierbar, Marketplace-ready)
+
+Ziel: Erzeuge ein vollständiges, production-taugliches Unreal Engine C++ Plugin namens DroneSystemPro für Unreal Engine 5.6. Keine Platzhalter; liefere echten, kompilierbaren Code + Editor-Module, DataAssets, Beispiel-Blueprints, Unit/Integration testcases, und eine README mit Build/Install/Usage-Anleitung. Das Plugin muss sofort in einem Standard UE5.6 C++ Projekt kompilieren. Alle Klassen sollen UPROPERTY/UFUNCTION korrekt verwenden und Replication-ready sein.
+
+Wesentliche Anforderungen (implementiere alles):
+	1.	Projekt/Plugin Meta
+	•	Name: DroneSystemPro
+	•	Modules: DroneSystemPro (Runtime), DroneSystemProEditor (Editor, optional aber geliefert)
+	•	LoadingPhase: Default
+	•	Marketplace-ready Struktur (Source, Content, Docs, Examples)
+	2.	Engine Target
+	•	Kompatibel und getestet für Unreal Engine 5.6.
+	•	Kompiliere gegen standard Visual Studio 2022 (Windows) und clang (macOS) Build-Targets—liefere Build.cs korrekt.
+	3.	Architektur / Dateistruktur
+	•	Source/DroneSystemPro/Public & Private
+	•	Source/DroneSystemProEditor/Public & Private
+	•	Content/Examples (einsatzbereite Level mit Multiplayer-Listen-Server und Listen-Client)
+	•	Docs/README.md mit Installations- und API-Beschreibung
+	•	Tests/ (Automation tests / Functional tests)
+	4.	Kern-C++ Klassen / Komponenten (voll implementiert)
+	•	ADroneBase (AActor oder APawn — wähle Pawn wenn Possess möglich): zentraler Actor, besitzt Komponenten.
+	•	UDroneMovementComponent : Bewegung, Physics-free/smooth interpolation, HighSpeed/LowSpeed Mode, Input handling (Keyboard/Mouse + Controller) und Client-Prediction + Reconciliation. Implementiere server authority + client RPCs for input, avoid replicating transform each tick — use movement replication snapshot + smoothing.
+	•	UDroneBatteryComponent : batteriestatus, drain rates pro feature (flashlight, high speed, night/thermal vision, scanning), replicated float BatteryLevel, OnRep handlers, auto-recharge at dock.
+	•	UDroneVisionComponent : manages VisionMode enum (Normal, Night, Thermal), thermal detection logic (low-bandwidth heatmap object list), night/thermal toggles with replication.
+	•	UDroneMarkingComponent : marks/enemies with outline through walls (implement occlusion tagging + timeouts). Use AActor tags + networked marking events. Optimize by sending only IDs + timestamps.
+	•	UDroneUtilityComponent : flashlight, compass, basic HUD data provider.
+	•	UDroneAIController + Behavior wrapper: DataDriven behaviors: Patrol, Follow, Scan, Attack-Mark. Use UDataAsset profiles for behavior parameters.
+	•	UDroneDataAsset / UDroneConfig structs: define stats (MaxSpeed, Accel, BatteryDrain rates, SensorRange, MarkDuration) editable in Editor; live-reload in editor.
+	•	UDroneReplicationComponent (or integrate into movement component): handles relevancy, prioritization, delta compression, bandwidth caps.
+	•	UExternalInteractionComponent (networked): jam/hacking/terminal hooks:
+	•	UJammingComponent can attach to world objects; provides JamStrength that affects drones in radius (simulate signal loss, degrade vision fidelity, increase battery drain).
+	•	UTerminalActor (AActor) + UHackingComponent (on Pawn/Player) enabling multiplayer hack minigame flow: StartHack RPC -> Server validates -> success/failure events -> state changes (e.g., disable jammers).
+	•	UDroneDockingComponent : docking station actor, recharge logic, auto-recall.
+	5.	Networking / Replication
+	•	Server authoritative model: server validates movement, state transitions, battery events.
+	•	Implement Client Prediction + Server Reconciliation for movement (show concrete sample algorithm + code that compiles).
+	•	Use ReplicatedUsing=OnRep_... for key state variables (BatteryLevel, VisionMode, MarkedTargets).
+	•	Use RPCs: Server_SetInput, Server_RequestAction, NetMulticast_PlayFX (only when needed).
+	•	Relevancy optimization: implement per-player NetCullDistanceSquared, only replicate heavy data (thermal heatmap) when within range and relevant.
+	•	Bandwidth optimizations: quantize floats, use uint16 compressed angles, and send small snapshots at fixed tick rates.
+	•	Security: server-side validation of inputs (clamp speeds, validate hack success chances).
+	6.	Blueprint Exposure & Editor Tools
+	•	Expose key classes to Blueprints: UFUNCTION(BlueprintCallable) / UPROPERTY(EditDefaultsOnly) so designers can use DataAssets.
+	•	Editor module: DataAsset factories, custom details panel for DroneConfig, and a simple visual spawner tool.
+	•	Example Blueprints: DroneBP derived from ADroneBase, DroneDockBP, JamFieldBP, TerminalBP.
+	7.	AI & Behavior Data-Driven
+	•	Behavior profiles as DataAssets; sample profiles included for different game types (Stealth Scout, Combat Drone, Surveyor).
+	•	Provide a BehaviorTree wrapper or simplified C++ state machine with hooks for designers.
+	8.	Environmental Interaction / Gameplay
+	•	Jam fields reduce effective sensor range and increase battery drain; show code for how vision component checks jamming and falls back.
+	•	Wind/fog influence movement/battery (simplified physics multiplier).
+	•	Hacking: Terminal actor with interactive networked sequence (server validates progress, sends events).
+	9.	Optimization & Performance
+	•	Use FTimerManager rather than ticking everything each frame where possible.
+	•	Avoid tick on many actors — use conditional ticking or interest management.
+	•	Use pooled particle/spawn systems for FX.
+	•	Explain where to use BeginPlay vs PostInitializeComponents for replication safety.
+	•	Provide profiling notes and recommended defaults (snapshot rate, relevancy distances).
+	10.	Examples & Tests
+	•	Provide one sample level with:
+	•	Listen server + client example (local multiplayer PIE workflow).
+	•	Pre-placed Drone with dock, jam field, and terminal. Provide step-by-step test plan to verify replication/multiplayer flows.
+	•	Add automation tests (Functional Test or Automation Test) verifying:
+	•	Battery drain replication, docking recharge, marking replication, jamming impact, basic movement replication correctness.
+	11.	Code Quality & Standards
+	•	Clear class/file naming, comments, and doxygen-style function headers.
+	•	Defensive programming: null checks, server vs client guards, ensure() where appropriate.
+	•	No copyrighted text; all code original.
+	12.	Deliverables
+	•	Full plugin folder with all source files.
+	•	Example Content/Level and Example GameMode for testing.
+	•	README.md: Build steps, plugin settings, API overview, usage examples (how to spawn, how to attach jammer, how to create DataAssets).
+	•	CHANGELOG.md and LICENSE (MIT by default).
+	•	Short HowTo checklist for marketplace submission.
+	13.	Extra: Hacking / Terminal Mini-System
+	•	Implement a simple networking friendly hacking flow:
+	•	Player triggers StartHack (client -> server).
+	•	Server spawns a FHackSession, tracks progress on server tick, sends progress updates to client.
+	•	On success: call server method to toggle jammer/terminal state; multicast visual feedback.
+	•	Include an optional small timed minigame UI (Blueprint widget skeleton) but core logic on server.
+	14.	Acceptance Criteria
+	•	The produced plugin compiles cleanly in UE5.6 with no unresolved references.
+	•	Multiplayer PIE: spawn server and two clients; movement prediction, battery replication, marking, jamming, docking and hacking behave consistently across clients.
+	•	Editor: DataAsset creation/editing works and influences runtime values without code recompilation.
+	15.	Output format required from you (the model):
+	•	Provide the full plugin in a zipped folder structure listing (file names + file contents). For each C++ file, include complete, compilable code blocks.
+	•	Provide Example level assets (list + small blueprint pseudo-assets linking C++ classes).
+	•	README and Tests as plaintext files.
+	•	At the top of the response include a concise high-level summary (3–5 lines) of what you produced.
+
+⸻
+
+Zusätzliche Hinweise für den Generator (nicht für den Endkunden):
+	•	Priorisiere network correctness and security over visual polish.
+	•	Use UE idioms for replication (OnRep, Role checks) and movement prediction pattern (client stores input history, server simulates authoritative state and sends correction).
+	•	Keep replication payloads minimal; avoid replicating full maps or heavy textures.
+	•	If any external engine API differs in minor naming from 5.6, prefer the most common 5.6 API. Explain small compatibility choices in README.
