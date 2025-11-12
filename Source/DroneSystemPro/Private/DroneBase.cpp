@@ -7,6 +7,7 @@
 #include "DroneMarkingComponent.h"
 #include "DroneUtilityComponent.h"
 #include "DroneReplicationComponent.h"
+#include "DroneCameraEffectsComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -20,6 +21,9 @@ ADroneBase::ADroneBase()
 	bIsActive = true;
 	LookUpValue = 0.0f;
 	TurnValue = 0.0f;
+	PendingMovementInput = FVector::ZeroVector;
+	LastMovementInput = FVector::ZeroVector;
+	ControlRotationInput = FVector::ZeroVector;
 
 	// Create mesh component
 	DroneMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DroneMesh"));
@@ -47,6 +51,7 @@ ADroneBase::ADroneBase()
 	DroneMarking = CreateDefaultSubobject<UDroneMarkingComponent>(TEXT("DroneMarking"));
 	DroneUtility = CreateDefaultSubobject<UDroneUtilityComponent>(TEXT("DroneUtility"));
 	DroneReplication = CreateDefaultSubobject<UDroneReplicationComponent>(TEXT("DroneReplication"));
+	DroneCameraEffects = CreateDefaultSubobject<UDroneCameraEffectsComponent>(TEXT("DroneCameraEffects"));
 
 	// Set default net settings
 	NetCullDistanceSquared = 15000.0f * 15000.0f;
@@ -93,6 +98,24 @@ void ADroneBase::PossessedBy(AController* NewController)
 void ADroneBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (bIsActive && DroneMovement)
+	{
+		// Consume and apply movement input vector
+		FVector MovementInput = ConsumeMovementInputVector();
+		if (!MovementInput.IsNearlyZero())
+		{
+			DroneMovement->SetMovementInput(MovementInput);
+		}
+
+		// Apply control rotation input
+		if (!ControlRotationInput.IsNearlyZero())
+		{
+			FVector2D LookInput(ControlRotationInput.Z, ControlRotationInput.Y); // Yaw, Pitch
+			DroneMovement->SetLookInput(LookInput);
+			ControlRotationInput = FVector::ZeroVector;
+		}
+	}
 
 	// Update camera based on drone rotation
 	if (CameraArm)
@@ -152,6 +175,46 @@ void ADroneBase::SetActive(bool bNewActive)
 		if (DroneBattery && !bNewActive)
 			DroneBattery->StopDrain();
 	}
+}
+
+void ADroneBase::AddMovementInput(FVector WorldDirection, float ScaleValue, bool bForce)
+{
+	if (!bIsActive)
+		return;
+
+	// Accumulate movement input
+	PendingMovementInput += WorldDirection * ScaleValue;
+}
+
+void ADroneBase::AddControllerYawInput(float Val)
+{
+	if (!bIsActive || Val == 0.0f)
+		return;
+
+	ControlRotationInput.Z += Val;
+}
+
+void ADroneBase::AddControllerPitchInput(float Val)
+{
+	if (!bIsActive || Val == 0.0f)
+		return;
+
+	ControlRotationInput.Y += Val;
+}
+
+void ADroneBase::AddControllerRollInput(float Val)
+{
+	if (!bIsActive || Val == 0.0f)
+		return;
+
+	ControlRotationInput.X += Val;
+}
+
+FVector ADroneBase::ConsumeMovementInputVector()
+{
+	LastMovementInput = PendingMovementInput;
+	PendingMovementInput = FVector::ZeroVector;
+	return LastMovementInput;
 }
 
 void ADroneBase::MoveForward(float Value)
