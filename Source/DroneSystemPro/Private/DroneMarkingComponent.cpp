@@ -5,6 +5,7 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/Character.h"
 #include "Camera/CameraComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
@@ -282,7 +283,26 @@ void UDroneMarkingComponent::ApplyMarkVisuals(AActor* Target, bool bMarked)
 		Target->Tags.Remove(MarkTag);
 	}
 
-	// In a full implementation, this would enable custom depth/stencil rendering
-	// for outline effect through walls
-	// Blueprint can handle visual effects based on the tag
+	// Enable custom depth/stencil rendering for outline effect
+	TArray<UActorComponent*> Components;
+	Target->GetComponents(UPrimitiveComponent::StaticClass(), Components);
+
+	for (UActorComponent* Component : Components)
+	{
+		UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component);
+		if (PrimComp)
+		{
+			// Enable custom depth pass for outline rendering
+			PrimComp->SetRenderCustomDepth(bMarked);
+
+			if (bMarked)
+			{
+				// Set custom stencil value (255 for marked enemies)
+				PrimComp->SetCustomDepthStencilValue(255);
+
+				// Allow rendering through walls for marked targets
+				PrimComp->SetCustomDepthStencilWriteMask(ERendererStencilMask::ERSM_Default);
+			}
+		}
+	}
 }

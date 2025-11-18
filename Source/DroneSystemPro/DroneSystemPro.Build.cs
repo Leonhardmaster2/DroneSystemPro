@@ -32,7 +32,8 @@ public class DroneSystemPro : ModuleRules
 				"AIModule",
 				"GameplayTasks",
 				"NavigationSystem",
-				"NetCore"
+				"NetCore",
+				"UMG"
 			}
 		);
 

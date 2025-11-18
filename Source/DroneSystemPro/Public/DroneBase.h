@@ -13,6 +13,7 @@ class UDroneVisionComponent;
 class UDroneMarkingComponent;
 class UDroneUtilityComponent;
 class UDroneReplicationComponent;
+class UDroneCameraEffectsComponent;
 class UCameraComponent;
 class USpringArmComponent;
 class UStaticMeshComponent;
@@ -53,6 +54,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Drone")
 	UDroneUtilityComponent* GetDroneUtility() const { return DroneUtility; }
 
+	UFUNCTION(BlueprintPure, Category = "Drone")
+	UDroneCameraEffectsComponent* GetDroneCameraEffects() const { return DroneCameraEffects; }
+
 	// Configuration
 	UFUNCTION(BlueprintCallable, Category = "Drone")
 	void SetDroneConfig(UDroneConfig* NewConfig);
@@ -66,6 +70,28 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Drone")
 	void SetActive(bool bNewActive);
+
+	// Movement Input (UE standard functions)
+	UFUNCTION(BlueprintCallable, Category = "Drone|Movement")
+	virtual void AddMovementInput(FVector WorldDirection, float ScaleValue = 1.0f, bool bForce = false);
+
+	UFUNCTION(BlueprintCallable, Category = "Drone|Movement")
+	virtual void AddControllerYawInput(float Val);
+
+	UFUNCTION(BlueprintCallable, Category = "Drone|Movement")
+	virtual void AddControllerPitchInput(float Val);
+
+	UFUNCTION(BlueprintCallable, Category = "Drone|Movement")
+	virtual void AddControllerRollInput(float Val);
+
+	UFUNCTION(BlueprintPure, Category = "Drone|Movement")
+	FVector GetPendingMovementInputVector() const { return PendingMovementInput; }
+
+	UFUNCTION(BlueprintPure, Category = "Drone|Movement")
+	FVector GetLastMovementInputVector() const { return LastMovementInput; }
+
+	UFUNCTION(BlueprintCallable, Category = "Drone|Movement")
+	virtual FVector ConsumeMovementInputVector();
 
 protected:
 	// Components
@@ -96,6 +122,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UDroneReplicationComponent* DroneReplication;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UDroneCameraEffectsComponent* DroneCameraEffects;
+
 	// Configuration
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Configuration")
 	UDroneConfig* DroneConfig;
@@ -118,4 +147,14 @@ protected:
 private:
 	float LookUpValue;
 	float TurnValue;
+
+	// Movement input vectors (similar to Character)
+	UPROPERTY()
+	FVector PendingMovementInput;
+
+	UPROPERTY()
+	FVector LastMovementInput;
+
+	UPROPERTY()
+	FVector ControlRotationInput;
 };
